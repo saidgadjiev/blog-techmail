@@ -1,12 +1,15 @@
 package ru.gadjini.blog.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.ArgumentPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.gadjini.blog.model.Forum;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.Map;
 
 @Repository
 public class ForumRepository {
@@ -18,13 +21,22 @@ public class ForumRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public boolean create(Forum forum) {
-        int created = jdbcTemplate.update(
-                "INSERT INTO forum(slug, lowercase_slug, title, author) VALUES(?, ?, ?, ?) ON CONFLICT DO NOTHING",
-                forum.getSlug(), forum.getSlug().toLowerCase(), forum.getTitle(), forum.getUser()
-        );
+    public Forum create(Forum forum) {
+        GeneratedKeyHolder generatedKeyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(
+                con -> {
+                    PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO forum(slug, lowercase_slug, title, author) \n" +
+                            "select ?, ?, ?, nickname\n" +
+                            "    from users where lowercase_nickname = ?\n" +
+                            "on conflict do nothing returning *", Statement.RETURN_GENERATED_KEYS);
+                    new ArgumentPreparedStatementSetter(new Object[] {forum.getSlug(),
+                            forum.getSlug().toLowerCase(), forum.getTitle(),
+                            forum.getUser().toLowerCase()}).setValues(preparedStatement);
 
-        return created > 0;
+                    return preparedStatement;
+                }, generatedKeyHolder);
+
+        return mapForum(generatedKeyHolder);
     }
 
     public Forum getBySlug(String slug) {
@@ -39,6 +51,19 @@ public class ForumRepository {
         forum.setSlug(resultSet.getString("slug"));
         forum.setTitle(resultSet.getString("title"));
         forum.setUser(resultSet.getString("author"));
+
+        return forum;
+    }
+
+    private Forum mapForum(GeneratedKeyHolder generatedKeyHolder) {
+        Map<String, String> keys = (Map<String, String>) (Object) generatedKeyHolder.getKeys();
+        if (keys == null) {
+            return null;
+        }
+        Forum forum = new Forum();
+        forum.setSlug(keys.get("slug"));
+        forum.setTitle(keys.get("title"));
+        forum.setUser(keys.get("author"));
 
         return forum;
     }
