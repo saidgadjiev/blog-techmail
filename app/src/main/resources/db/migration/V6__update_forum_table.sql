@@ -1,0 +1,1 @@
+alter table forum add column lowercase_slug varchar(64) unique;

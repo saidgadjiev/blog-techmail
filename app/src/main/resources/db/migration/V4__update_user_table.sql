@@ -1,0 +1,1 @@
+alter table users add column lowercase_nickname varchar(256) unique not null;

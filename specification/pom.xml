@@ -87,6 +87,7 @@
                             <generatorName>spring</generatorName>
                             <apiPackage>ru.gadjini.blog.controller</apiPackage>
                             <modelPackage>ru.gadjini.blog.model</modelPackage>
+                            <invokerPackage>ru.gadjini.blog</invokerPackage>
                             <skipOverwrite>true</skipOverwrite>
                             <configOptions>
                                 <delegatePattern>true</delegatePattern>

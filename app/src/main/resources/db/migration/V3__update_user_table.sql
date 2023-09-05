@@ -1,0 +1,1 @@
+alter table users add column lowercase_email varchar(512) unique not null;
