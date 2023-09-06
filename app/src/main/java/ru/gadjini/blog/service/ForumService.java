@@ -1,20 +1,30 @@
 package ru.gadjini.blog.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import ru.gadjini.blog.controller.ForumApiDelegate;
 import ru.gadjini.blog.dao.ForumRepository;
+import ru.gadjini.blog.dao.ThreadRepository;
 import ru.gadjini.blog.model.Forum;
 import ru.gadjini.blog.model.MessageResponse;
+import ru.gadjini.blog.model.Thread;
+
+import java.time.OffsetDateTime;
+import java.util.List;
 
 @Service
 public class ForumService implements ForumApiDelegate {
 
     private final ForumRepository forumRepository;
 
-    public ForumService(ForumRepository forumRepository) {
+    private final ThreadRepository threadRepository;
+
+    @Autowired
+    public ForumService(ForumRepository forumRepository, ThreadRepository threadRepository) {
         this.forumRepository = forumRepository;
+        this.threadRepository = threadRepository;
     }
 
     @Override
@@ -48,5 +58,29 @@ public class ForumService implements ForumApiDelegate {
             return (ResponseEntity<Forum>) (Object) ResponseEntity.status(HttpStatus.NOT_FOUND).body(messageResponse);
         }
         return ResponseEntity.ok(bySlug);
+    }
+
+    @Override
+    public ResponseEntity<Thread> threadCreate(String slug, Thread thread) {
+        thread.setForum(slug);
+        Thread result = threadRepository.create(thread);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    }
+
+    @Override
+    public ResponseEntity<List<Thread>> forumGetThreads(String slug, Integer limit, OffsetDateTime since, Boolean desc) {
+        List<Thread> threads = threadRepository.getThreads(slug, limit, since, desc);
+
+        if (threads.isEmpty()) {
+            boolean existsForum = forumRepository.existsBySlug(slug);
+            if (!existsForum) {
+                MessageResponse messageResponse = new MessageResponse(
+                        "Can't find forum by slug: " + slug
+                );
+                return (ResponseEntity<List<Thread>>) (Object) ResponseEntity.status(HttpStatus.NOT_FOUND).body(messageResponse);
+            }
+        }
+        return ResponseEntity.ok(threads);
     }
 }

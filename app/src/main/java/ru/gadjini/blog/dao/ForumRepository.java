@@ -46,6 +46,13 @@ public class ForumRepository {
         );
     }
 
+    public boolean existsBySlug(String slug) {
+        return jdbcTemplate.query("SELECT true FROM forum where lowercase_slug = ?",
+                ResultSet::next,
+                slug.toLowerCase()
+        );
+    }
+
     private Forum mapForum(ResultSet resultSet) throws SQLException {
         Forum forum = new Forum();
         forum.setSlug(resultSet.getString("slug"));
