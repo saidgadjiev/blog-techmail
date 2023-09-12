@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import ru.gadjini.blog.common.Messages;
 import ru.gadjini.blog.controller.UserApiDelegate;
 import ru.gadjini.blog.dao.UserRepository;
 import ru.gadjini.blog.model.MessageResponse;
@@ -43,7 +44,7 @@ public class UserService implements UserApiDelegate {
 
         if (byNickName == null) {
             return (ResponseEntity<User>) (Object) ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new MessageResponse("Can't find user by nickname: " + nickname));
+                    .body(new MessageResponse(Messages.USER_NOT_FOUND + nickname));
         }
 
         return ResponseEntity.ok(byNickName);
@@ -57,14 +58,14 @@ public class UserService implements UserApiDelegate {
         } else {
             if (!profile.isEmailSet()) {
                 MessageResponse messageResponse = new MessageResponse(
-                        "Can't find user by nickname: " + nickname
+                        Messages.USER_NOT_FOUND + nickname
                 );
                 return (ResponseEntity<User>) (Object) ResponseEntity.status(HttpStatus.NOT_FOUND).body(messageResponse);
             }
             String alreadyUsedEmailNickname = userRepository.getNicknameByEmail(profile.getEmail());
             if (!StringUtils.hasLength(alreadyUsedEmailNickname)) {
                 MessageResponse messageResponse = new MessageResponse(
-                        "Can't find user by nickname: " + nickname
+                        Messages.USER_NOT_FOUND + nickname
                 );
                 return (ResponseEntity<User>) (Object) ResponseEntity.status(HttpStatus.NOT_FOUND).body(messageResponse);
             }

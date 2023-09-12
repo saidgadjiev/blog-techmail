@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import ru.gadjini.blog.common.Messages;
 import ru.gadjini.blog.controller.ForumApiDelegate;
 import ru.gadjini.blog.dao.ForumRepository;
 import ru.gadjini.blog.dao.ThreadRepository;
@@ -11,7 +12,6 @@ import ru.gadjini.blog.dao.UserRepository;
 import ru.gadjini.blog.model.Forum;
 import ru.gadjini.blog.model.MessageResponse;
 import ru.gadjini.blog.model.Thread;
-import ru.gadjini.blog.model.User;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -46,7 +46,7 @@ public class ForumService implements ForumApiDelegate {
             }
 
             MessageResponse messageResponse = new MessageResponse(
-                    "Can't find user with nickname: " + forum.getUser()
+                    Messages.USER_NOT_FOUND + forum.getUser()
             );
             return (ResponseEntity<Forum>) (Object) ResponseEntity.status(HttpStatus.NOT_FOUND).body(messageResponse);
         }
@@ -58,7 +58,7 @@ public class ForumService implements ForumApiDelegate {
 
         if (bySlug == null) {
             MessageResponse messageResponse = new MessageResponse(
-                    "Can't find forum with slug: " + slug
+                    Messages.FORUM_NOT_FOUND + slug
             );
 
             return (ResponseEntity<Forum>) (Object) ResponseEntity.status(HttpStatus.NOT_FOUND).body(messageResponse);
@@ -78,7 +78,7 @@ public class ForumService implements ForumApiDelegate {
 
             if (!existsByNickName) {
                 MessageResponse messageResponse = new MessageResponse(
-                        "Can't find user by nickname: " + thread.getAuthor()
+                        Messages.USER_NOT_FOUND + thread.getAuthor()
                 );
 
                 return (ResponseEntity<Thread>) (Object) ResponseEntity
@@ -92,7 +92,7 @@ public class ForumService implements ForumApiDelegate {
             }
 
             MessageResponse messageResponse = new MessageResponse(
-                    "Can't find thread forum by slug: " + slug
+                    Messages.THREAD_FORUM_NOT_FOUND + slug
             );
 
             return (ResponseEntity<Thread>) (Object) ResponseEntity
@@ -108,7 +108,7 @@ public class ForumService implements ForumApiDelegate {
             boolean existsForum = forumRepository.existsBySlug(slug);
             if (!existsForum) {
                 MessageResponse messageResponse = new MessageResponse(
-                        "Can't find forum by slug: " + slug
+                        Messages.FORUM_NOT_FOUND + slug
                 );
                 return (ResponseEntity<List<Thread>>) (Object) ResponseEntity.status(HttpStatus.NOT_FOUND).body(messageResponse);
             }
