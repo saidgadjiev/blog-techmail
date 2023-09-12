@@ -109,6 +109,14 @@ public class UserRepository {
         );
     }
 
+    public boolean existsBynickname(String nickname) {
+        return jdbcTemplate.query(
+                "select true from users where lowercase_nickname = ?",
+                rs -> rs.next() ? true : false,
+                nickname.toLowerCase()
+        );
+    }
+
     public String getNicknameByEmail(String email) {
         return jdbcTemplate.query(
                 "select nickname from users where lowercase_email = ?",
@@ -118,7 +126,7 @@ public class UserRepository {
     }
 
     public void truncate() {
-        jdbcTemplate.execute("truncate table users");
+        jdbcTemplate.execute("truncate table users cascade");
     }
 
     private User mapUser(GeneratedKeyHolder generatedKeyHolder) {

@@ -3,10 +3,9 @@ package ru.gadjini.blog.dao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.ArgumentPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 import ru.gadjini.blog.model.Thread;
 
 import java.sql.*;
@@ -27,18 +26,23 @@ public class ThreadRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    public void truncate() {
+        jdbcTemplate.execute("truncate table thread cascade");
+    }
+
     public Thread create(Thread thread) {
         GeneratedKeyHolder generatedKeyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(con -> {
             PreparedStatement preparedStatement = con
-                    .prepareStatement("INSERT INTO thread(title, author, forum, message, slug, created)\n" +
-                                    "select ?, u.nickname, f.slug, ?, ?, ?\n" +
+                    .prepareStatement("INSERT INTO thread(title, author, forum, message, slug, lowercase_slug, created)\n" +
+                                    "select ?, u.nickname, f.slug, ?, ?, ?, ?\n" +
                                     "from forum f, users u where f.lowercase_slug = ? and u.lowercase_nickname = ?\n" +
                                     "ON CONFLICT DO NOTHING\n" +
                                     "RETURNING *",
                             Statement.RETURN_GENERATED_KEYS);
 
             new ArgumentPreparedStatementSetter(new Object[]{thread.getTitle(), thread.getMessage(), thread.getSlug(),
+                    thread.getSlug() == null ? null : thread.getSlug().toLowerCase(),
                     thread.getCreated(), thread.getForum().toLowerCase(), thread.getAuthor().toLowerCase()})
                     .setValues(preparedStatement);
 
@@ -46,6 +50,17 @@ public class ThreadRepository {
         }, generatedKeyHolder);
 
         return map(generatedKeyHolder);
+    }
+
+    public Thread getBySlug(String slug) {
+        if (!StringUtils.hasLength(slug)) {
+            return null;
+        }
+        return jdbcTemplate.query(
+                "SELECT * FROM thread where lowercase_slug = ?",
+                rs -> rs.next() ? map(rs) : null,
+                slug.toLowerCase()
+        );
     }
 
     public List<Thread> getThreads(String forum, Integer limit, OffsetDateTime since, Boolean desc) {

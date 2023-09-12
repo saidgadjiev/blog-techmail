@@ -7,9 +7,11 @@ import org.springframework.stereotype.Service;
 import ru.gadjini.blog.controller.ForumApiDelegate;
 import ru.gadjini.blog.dao.ForumRepository;
 import ru.gadjini.blog.dao.ThreadRepository;
+import ru.gadjini.blog.dao.UserRepository;
 import ru.gadjini.blog.model.Forum;
 import ru.gadjini.blog.model.MessageResponse;
 import ru.gadjini.blog.model.Thread;
+import ru.gadjini.blog.model.User;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -21,10 +23,14 @@ public class ForumService implements ForumApiDelegate {
 
     private final ThreadRepository threadRepository;
 
+    private final UserRepository userRepository;
+
     @Autowired
-    public ForumService(ForumRepository forumRepository, ThreadRepository threadRepository) {
+    public ForumService(ForumRepository forumRepository, ThreadRepository threadRepository,
+                        UserRepository userRepository) {
         this.forumRepository = forumRepository;
         this.threadRepository = threadRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -65,7 +71,33 @@ public class ForumService implements ForumApiDelegate {
         thread.setForum(slug);
         Thread result = threadRepository.create(thread);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        if (result != null) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        } else {
+            boolean existsByNickName = userRepository.existsBynickname(thread.getAuthor());
+
+            if (!existsByNickName) {
+                MessageResponse messageResponse = new MessageResponse(
+                        "Can't find user by nickname: " + thread.getAuthor()
+                );
+
+                return (ResponseEntity<Thread>) (Object) ResponseEntity
+                        .status(HttpStatus.NOT_FOUND).body(messageResponse);
+            }
+
+            Thread bySlug = threadRepository.getBySlug(thread.getSlug());
+
+            if (bySlug != null) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(bySlug);
+            }
+
+            MessageResponse messageResponse = new MessageResponse(
+                    "Can't find thread forum by slug: " + slug
+            );
+
+            return (ResponseEntity<Thread>) (Object) ResponseEntity
+                    .status(HttpStatus.NOT_FOUND).body(messageResponse);
+        }
     }
 
     @Override

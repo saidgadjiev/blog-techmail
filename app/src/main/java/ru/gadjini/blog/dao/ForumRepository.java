@@ -21,6 +21,10 @@ public class ForumRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    public void truncate() {
+        jdbcTemplate.execute("truncate table forum cascade");
+    }
+
     public Forum create(Forum forum) {
         GeneratedKeyHolder generatedKeyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(
