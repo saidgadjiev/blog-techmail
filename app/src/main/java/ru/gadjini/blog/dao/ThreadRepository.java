@@ -7,6 +7,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 import ru.gadjini.blog.model.Thread;
+import ru.gadjini.blog.model.ThreadUpdate;
 
 import java.sql.*;
 import java.time.Instant;
@@ -52,22 +53,82 @@ public class ThreadRepository {
         return map(generatedKeyHolder);
     }
 
+    public boolean updateThread(String slugOrId, ThreadUpdate threadUpdate) {
+        List<Object> args = new ArrayList<>();
+        args.add(threadUpdate.getMessage());
+        args.add(threadUpdate.getTitle());
+
+        String query = "update thread set message = ?, title = ? where lowercase_slug = ?";
+        try {
+            Integer slugIntId = Integer.parseInt(slugOrId);
+            query = "update thread set message = ?, title = ? where id = ?";
+            args.add(slugIntId);
+        } catch (NumberFormatException ex) {
+            args.add(slugOrId.toLowerCase());
+        }
+        int updated = jdbcTemplate.update(
+                query,
+                args.toArray(Object[]::new)
+        );
+
+        return updated > 0;
+    }
+
     public Thread getBySlug(String slug) {
         if (!StringUtils.hasLength(slug)) {
             return null;
         }
         return jdbcTemplate.query(
-                "SELECT * FROM thread where lowercase_slug = ?",
+                "SELECT *, 0 as votes_count FROM thread where lowercase_slug = ?",
                 rs -> rs.next() ? map(rs) : null,
                 slug.toLowerCase()
         );
     }
 
+    public Thread getBySlugOrId(String slugOrId) {
+        List<Object> args = new ArrayList<>();
+        String query = "SELECT *, (select sum(vote) from vote where thread_id = th.id) as votes_count" +
+                " FROM thread th where lowercase_slug = ?";
+        try {
+            Integer slugIntId = Integer.parseInt(slugOrId);
+            query = "SELECT *, (select sum(vote) from vote where thread_id = th.id) as votes_count" +
+                    " FROM thread th where id = ?";
+            args.add(slugIntId);
+        } catch (NumberFormatException ex) {
+            args.add(slugOrId.toLowerCase());
+        }
+        return jdbcTemplate.query(
+                query,
+                rs -> rs.next() ? map(rs) : null,
+                args.toArray(Object[]::new)
+        );
+    }
+
+    public Boolean isExistsBySlugOrId(String slugOrId) {
+        List<Object> args = new ArrayList<>();
+        String query = "SELECT true" +
+                " FROM thread th where lowercase_slug = ?";
+        try {
+            Integer slugIntId = Integer.parseInt(slugOrId);
+            query = "SELECT true" +
+                    " FROM thread th where id = ?";
+            args.add(slugIntId);
+        } catch (NumberFormatException ex) {
+            args.add(slugOrId.toLowerCase());
+        }
+        return jdbcTemplate.query(
+                query,
+                rs -> rs.next() ? true : false,
+                args.toArray(Object[]::new)
+        );
+    }
+
+    //TODO: create index
     public List<Thread> getThreads(String forum, Integer limit, OffsetDateTime since, Boolean desc) {
         List<Object> args = new ArrayList<>();
         StringBuilder query = new StringBuilder();
         query
-                .append("SELECT t.* FROM thread t inner join forum f on t.forum = f.slug\n")
+                .append("SELECT t.*, 0 as votes_count FROM thread t inner join forum f on t.forum = f.slug\n")
                 .append("WHERE f.lowercase_slug = ?");
         args.add(forum.toLowerCase());
         desc = desc != null && desc;
@@ -102,6 +163,7 @@ public class ThreadRepository {
             OffsetDateTime dt = OffsetDateTime.ofInstant(instant, ZoneId.of("UTC"));
             thread.setCreated(dt);
         }
+        thread.setVotes((int) resultSet.getLong("votes_count"));
 
         return thread;
     }

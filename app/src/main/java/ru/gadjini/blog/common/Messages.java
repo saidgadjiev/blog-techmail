@@ -11,4 +11,6 @@ public class Messages {
     public static final String THREAD_FORUM_NOT_FOUND = "Can't find thread forum by slug: ";
 
     public static final String FORUM_NOT_FOUND = "Can't find forum by slug: ";
+
+    public static final String THREAD_NOT_FOUND = "Can't find thread by slug: ";
 }
